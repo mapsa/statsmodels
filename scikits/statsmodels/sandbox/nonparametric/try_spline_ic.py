@@ -68,17 +68,27 @@ if __name__ == '__main__':
     yinterp = sp(x)
     t1 = time.time()
 
-    import regularsmooth as rs
-    t2 = time.time()
-    r = rs.smooth_data(x,y)
-    t3 = time.time()
+    #requires https://github.com/jjstickel/scikit-datasmooth/blob/master/scikits/datasmooth/regularsmooth.py
+    #in same directory
+    try:
+        import regularsmooth as rs
+        has_sksmooth = True
+    except ImportError:
+        has_sksmooth = False
+
+    if has_sksmooth:
+        t2 = time.time()
+        r = rs.smooth_data(x,y)
+        t3 = time.time()
 
 
     from scikits.statsmodels.nonparametric import lowess as lo
     t4 = time.time()
     actual_lowess = lo.lowess(y,x)
     t5 = time.time()
-    print 'times', t1-t0, t3-t2, t5-t4
+    print 'times', t1-t0, t5-t4,
+    if has_sksmooth:
+        print t3-t2
 
     import matplotlib.pyplot as plt
     fig = plt.figure()
@@ -86,7 +96,8 @@ if __name__ == '__main__':
     ax.plot(x, y, 'bo',label='observed')
     ax.plot(x, y_true, 'k',label='y true')
     ax.plot(x, yinterp, 'r', label='smoothed scipy BIC')
-    ax.plot(x, r[0], 'g', label='smoothed datasmooth')
+    if has_sksmooth:
+        ax.plot(x, r[0], 'g', label='smoothed datasmooth')
     ax.plot(x, actual_lowess[:,1], label='smoothed lowess')
 
     ax.legend(loc='lower left')
