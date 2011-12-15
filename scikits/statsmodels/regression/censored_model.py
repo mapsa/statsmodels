@@ -27,6 +27,7 @@ def _olsen_reparam(params):
     theta = 1/sigma
     """
     beta, sigma  = params[:-1], params[-1]
+    sigma = np.abs(sigma)
     theta = 1./sigma
     gamma = beta/sigma
     return gamma, theta
@@ -39,7 +40,7 @@ def _reparam_olsen(params):
     beta = gamma/theta
     """
     gamma, theta  = params[:-1], params[-1]
-    sigma = 1./theta
+    sigma = np.abs(1./theta)
     beta = gamma/theta
     return beta, sigma
 
@@ -252,8 +253,8 @@ class Tobit(base.LikelihoodModel):
         sigma = ols_res.scale ** .5
         theta = 1/ols_res.scale ** .5
         nobs = len(self._center_endog)
-        params = params/nobs *2
-        theta = theta/2.
+        params = params/nobs #*2
+        theta = theta
         start_params = np.r_[params/sigma, theta]
 
         #use null model as starting values
@@ -420,7 +421,7 @@ if __name__ == "__main__":
     # nooooooooo
     print 'NM'
     mod2 = Tobit(endog, exog, left=0, right=False).fit(method='nm', ftol=1e-8,
-                    maxiter=1500)
+                    xtol=1e-8, maxiter=5000, maxfun=5000)
     print 'BFGS'
     mod3 = Tobit(endog, exog, left=0, right=False).fit(method='bfgs', ftol=1e-8, xtol=1e-8)
     print 'Powell'
