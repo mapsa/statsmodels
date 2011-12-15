@@ -64,13 +64,14 @@ def load():
     data = _get_data()
     ##### SET THE INDICES #####
     #NOTE: None for exog_idx is the complement of endog_idx
-    return du.process_recarray(data, endog_idx=8, exog_idx=None, dtype=float)
+    return du.process_recarray(data, endog_idx=8, #exog_idx=None,
+                               dtype=float)
 
 def load_pandas():
     data = _get_data()
     ##### SET THE INDICES #####
     #NOTE: None for exog_idx is the complement of endog_idx
-    return du.process_recarray_pandas(data, endog_idx=8, exog_idx=None,
+    return du.process_recarray_pandas(data, endog_idx=8,# exog_idx=None,
                                       dtype=float)
 
 def _get_data():

@@ -3,7 +3,7 @@ import scikits.statsmodels.base.model as base
 import scikits.statsmodels.base.wrapper as wrap
 from scikits.statsmodels.tools.decorators import cache_readonly
 from scikits.statsmodels.sandbox.regression.numdiff import (approx_hess_cs,
-    approx_fprime_cs, approx_hess, approx_fprime)
+    approx_fprime_cs, approx_hess, approx_hess3, approx_fprime)
 from scipy.stats import norm
 
 #TODO: clean-up estimation, delete webuse, write specific results class,
@@ -170,7 +170,10 @@ class Tobit(base.LikelihoodModel):
 
     def hessian(self, params):
         loglike = self.loglike
-        return approx_hess(params, loglike, epsilon=1e-8)[0]
+        #return approx_hess(params, loglike, epsilon=1e-4)[0]
+        plus = approx_hess(params, loglike, epsilon=1e-4)[0]
+        minus = approx_hess(params, loglike, epsilon=-1e-4)[0]
+        return 0.5 * (plus + minus)
 
     def _loglike_left(self, params, sigma):
         left_exog = (self.left - np.dot(self._left_exog, params)) / sigma
@@ -249,7 +252,8 @@ class Tobit(base.LikelihoodModel):
         sigma = ols_res.scale ** .5
         theta = 1/ols_res.scale ** .5
         nobs = len(self._center_endog)
-        params = params/nobs
+        params = params/nobs *2
+        theta = theta/2.
         start_params = np.r_[params/sigma, theta]
 
         #use null model as starting values
@@ -411,14 +415,14 @@ if __name__ == "__main__":
 
     # ok
     print 'Newton'
-    mod1 = Tobit(endog, exog, left=0, right=False).fit(method='newton')
+    mod1 = Tobit(endog, exog, left=0, right=False).fit(method='newton', tol=1e-10)
 
     # nooooooooo
     print 'NM'
-    mod2 = Tobit(endog, exog, left=0, right=False).fit(method='nm',
+    mod2 = Tobit(endog, exog, left=0, right=False).fit(method='nm', ftol=1e-8,
                     maxiter=1500)
     print 'BFGS'
-    mod3 = Tobit(endog, exog, left=0, right=False).fit(method='bfgs')
+    mod3 = Tobit(endog, exog, left=0, right=False).fit(method='bfgs', ftol=1e-8, xtol=1e-8)
     print 'Powell'
     mod4 = Tobit(endog, exog, left=0, right=False).fit(method='powell')
     print 'CG'
