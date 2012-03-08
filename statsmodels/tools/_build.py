@@ -20,7 +20,7 @@ int main(void) {
 }
 '''
 
-def has_c_compiler():
+def has_c_compiler_old():
     c = distutils_config(Distribution())
     try:
         success = c.try_compile(dummy_c_text)
@@ -30,6 +30,23 @@ def has_c_compiler():
                  "of files.")
         return False
 
+def has_c_compiler():
+    c = distutils_config(Distribution())
+
+    try:
+        #c.distribution.parse_command_line() #haven't figured out this
+        c.distribution.parse_config_files(c.distribution.find_config_files())
+        compiler_name = c.distribution.command_options['build ext']['compiler'][1]
+        c.compiler = compiler_name
+    except: # last should be KeyError, but I don't know what first raises
+        pass
+    try:
+        success = c.try_compile(dummy_c_text)
+        return True
+    except:
+        log.info("No C compiler detected. Not installing Cython version "
+                 "of files.")
+        return False
 
 def cython(pyx_files, working_path=''):
     """Use Cython to convert the given files to C.
