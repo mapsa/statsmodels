@@ -32,7 +32,7 @@ __all__ = ['GLS', 'WLS', 'OLS', 'GLSAR']
 
 import numpy as np
 from scipy.linalg import toeplitz
-from scipy import stats
+from scipy import stats, linalg as splinalg
 from scipy.stats.stats import ss
 from statsmodels.tools.tools import (add_constant, rank,
                                              recipr, chain_dot)
@@ -220,7 +220,7 @@ Should be of length %s, if sigma is a 1d array" % nobs)
             if ((not hasattr(self, 'pinv_wexog')) or
                 (not hasattr(self, 'normalized_cov_params'))):
                 #print "recalculating pinv"   #for debugging
-                self.pinv_wexog = pinv_wexog = np.linalg.pinv(self.wexog)
+                self.pinv_wexog = pinv_wexog = splinalg.pinv(self.wexog)
                 self.normalized_cov_params = np.dot(pinv_wexog,
                                                  np.transpose(pinv_wexog))
             beta = np.dot(self.pinv_wexog, endog)
