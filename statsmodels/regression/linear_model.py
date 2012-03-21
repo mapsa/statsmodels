@@ -220,7 +220,11 @@ Should be of length %s, if sigma is a 1d array" % nobs)
             if ((not hasattr(self, 'pinv_wexog')) or
                 (not hasattr(self, 'normalized_cov_params'))):
                 #print "recalculating pinv"   #for debugging
-                self.pinv_wexog = pinv_wexog = splinalg.pinv(self.wexog)
+                self.pinv_wexog = pinv_wexog = splinalg.pinv2(self.wexog,
+                                                                rcond=1e-15)
+#                self.pinv_wexog = pinv_wexog = np.linalg.pinv(self.wexog)
+#                if np.max(np.abs(pinv_wexog - pinv_wexog)) > 1e-14:
+#                    raise Exception
                 self.normalized_cov_params = np.dot(pinv_wexog,
                                                  np.transpose(pinv_wexog))
             beta = np.dot(self.pinv_wexog, endog)
