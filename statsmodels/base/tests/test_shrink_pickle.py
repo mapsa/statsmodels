@@ -70,6 +70,16 @@ class RemoveDataPickle(object):
         pred3 = results.predict(xf, **pred_kwds)
         np.testing.assert_equal(pred3, pred1)
 
+        def get_predict(cls):
+#            def predict(params, exog, *args, **kwds):
+                 #doesn't work for Logit, self.cdf is not available
+#                return cls.predict.__func__(None, params, exog, *args, **kwds)
+#            return predict
+            return cls.__new__(cls,cls).predict
+        predict = get_predict(results.model.__class__)
+        pred4 = predict(results.params, xf, **pred_kwds)
+        np.testing.assert_equal(pred4, pred1)
+
     def test_remove_data_docstring(self):
         assert_(self.results.remove_data.__doc__ is not None)
 
