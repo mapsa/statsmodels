@@ -259,12 +259,30 @@ class StepwiseOLSSweep(object):
     def params_new(self, endog_idx=-1):
         '''new parameters when one variable is swept
 
+        rows correspond to variable that is swept
+        columns are the variables as in exog
+
         for now:
             look only at the effect on a single endog
             only case endog_idx=-1
+
         '''
+        kx = self.k_vars_x
         rr = self.rs_current
-        return (rr[-1, :-1] / np.diag(rr)[:-1, None])
+        params_own = (rr[-1, :-1] / np.diag(rr)[:-1]) #, None])
+        params_own[self.is_exog[:self.k_vars_x]] = 0
+        #is_exog = self.is_exog.copy()
+        #the following works for variables that are in
+        #row k corresponds to sweeping variable k
+        #new parameters of variables are in columns
+        params = rr[-1, :kx]-rr[-1, :kx][:,None] * rr[:kx, :kx] / np.diag(rr)[:kx,None]
+        mask = np.repeat(self.is_exog[None,:self.k_vars_x], self.k_vars_x, axis=0)
+        params[~mask] = 0
+        #np.diag is mixing views versus copy across versions
+        idx = np.arange(self.k_vars_x)
+        params[idx, idx] = params_own
+        #params = np.atleast_2d(params)
+        return params
 
     def params_diff(self, endog_idx=-1):
         '''change in rss when one variable is swept
@@ -274,7 +292,9 @@ class StepwiseOLSSweep(object):
             only case endog_idx=-1
         '''
         rr = self.rs_current
-        return rr[-1, :-1] - self.params_new(self, endog_idx=-1)
+        params_current = rr[-1, :-1].copy()
+        params_current[~self.is_exog[:-1]] = 0
+        return params_current - self.params_new(endog_idx=endog_idx)
 
     def get_results(self):
         '''run OLS regression on current model and return results
