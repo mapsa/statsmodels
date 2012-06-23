@@ -110,7 +110,11 @@ class StepwiseOLSSweep(object):
                  ddof_std=0, ddof_model=0):
         '''
 
-        standardized requires no constant in exog
+        standardized requires that there is no constant in exog
+
+        Issues
+        multivariate endog is partially possible, but not fully implemented
+            currently only univariate endog is treated correctly in many methods
 
         possible extension:
             start from a pinv solution for initially included variables
@@ -146,7 +150,7 @@ class StepwiseOLSSweep(object):
         #add variables from the current model to the history
         #separate method so we can add things here
 
-        self.history.append((self.is_exog,
+        self.history.append((self.is_exog.copy(),
                              self.rss,
                              self.params,
                             ))
@@ -235,7 +239,20 @@ class StepwiseOLSSweep(object):
             only case endog_idx=-1
         '''
         rr = self.rs_current
-        return (rr[-1, :-1]**2 / np.diag(rr)[:-1])
+        #add_indicator = (~self.is_exog)
+        add_indicator = ~self.is_exog[:self.k_vars_x] #for change in sign
+        rssd = (rr[-1, :-1]**2 / np.diag(rr)[:-1])
+        rssd *= np.sign(0.5 - add_indicator)
+        return rssd
+
+    def rss_new(self, endog_idx=-1):
+        '''new values of rss when one of a variable is swept
+
+        for now:
+            look only at the effect on a single endog
+            only case endog_idx=-1
+        '''
+        return self.rss + self.rss_diff(self, endog_idx=endog_idx)
 
     def ftest_sweep(self, endog_idx=-1):
         '''get f_test for sweeping a variable
@@ -247,14 +264,17 @@ class StepwiseOLSSweep(object):
         from scipy import stats #lazy for now
 
         #need to make the following conditional on is_endog, add or drop
-        ssr_diff = self.rss_diff
-        ssr_full = self.rss + ssr_diff
-        df_full = self.df_resid + 1 #add one variable
+        ssr_diff = self.rss_diff(endog_idx=endog_idx)
+        #need to find larger/nesting model
+        add_indicator = ~self.is_exog[:self.k_vars_x]
+        ssr_full = self.rss + ssr_diff * add_indicator
+        #add one variable, df_resid goes down
+        df_full = self.df_resid - add_indicator
         df_diff = 1
 
-        f_value = ssr_diff / df_diff / ssr_full * df_full
+        f_value = np.abs(ssr_diff) / df_diff / ssr_full * df_full
         p_value = stats.f.sf(f_value, df_diff, df_full)
-        return f_value, p_value
+        return f_value, p_value, (ssr_diff, df_diff, ssr_full, df_full)
 
     def params_new(self, endog_idx=-1):
         '''new parameters when one variable is swept
@@ -285,7 +305,7 @@ class StepwiseOLSSweep(object):
         return params
 
     def params_diff(self, endog_idx=-1):
-        '''change in rss when one variable is swept
+        '''change in params when one variable is swept
 
         for now:
             look only at the effect on a single endog

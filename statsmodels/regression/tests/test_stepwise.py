@@ -6,7 +6,6 @@ Created on Fri Jun 22 19:19:51 2012
 Author: Josef Perktold
 """
 
-
 import numpy as np
 from numpy.testing import assert_equal, assert_almost_equal
 
@@ -26,7 +25,7 @@ class TestSweep(object):
         np.random.seed(85325783)
         x = np.random.randn(nobs, k_vars)
         x[:,0] = 1.   #make constant
-        y = x[:, :k_vars-1].sum(1) + np.random.randn(nobs)
+        y = x[:, :k_vars-2].sum(1) + np.random.randn(nobs)
 
         cls.endog, cls.exog = y, x
         cls.ols_cache = {}
@@ -46,17 +45,38 @@ class TestSweep(object):
 
     def test_sequence(self):
         stols = self.stols
-        for k in range(stols.k_vars_x-1): #keep one for next test
+        for k in range(stols.k_vars_x-1) + [0, 1, 3]: #keep one for next test
+            print k
             #store anticipated results
             params_new = stols.params_new().copy()
-            rss_new = stols.rss - stols.rss_diff()
+            rss_new = stols.rss + stols.rss_diff()
             stols.sweep(k)
             res = self.cached_ols(stols.is_exog)
-            assert_equal(np.squeeze(params_new[k:k+1, stols.is_exog[:stols.k_vars_x]]),
-                         np.squeeze(stols.params))  #different ndim
-            assert_almost_equal(params_new[k, stols.is_exog], res.params, decimal=13)
+            assert_equal(
+                 np.squeeze(params_new[k:k+1, stols.is_exog[:stols.k_vars_x]]),
+                 np.squeeze(stols.params))  #different ndim
+            assert_almost_equal(params_new[k, stols.is_exog], res.params,
+                                decimal=13)
             assert_almost_equal(rss_new[k], stols.rss, decimal=13)
             assert_almost_equal(stols.rss, res.ssr, decimal=12)
+            if k == stols.k_vars_x - 2:  #do this once
+                print repr(stols.is_exog)
+                resall = tt.cached_ols(np.ones(4, bool))
+                resc = tt.cached_ols(tt.stols.is_exog)
+                #check fvalue of ftest
+                fval3 = [resc.f_test(np.eye(3)[ii]).fvalue.item(0,0)
+                            for ii in range(3)]
+                fval4 = [resall.f_test(np.eye(4)[ii]).fvalue.item(0,0)
+                            for ii in range(4)]
+                ff = tt.stols.ftest_sweep()
+                assert_almost_equal(ff[0], (fval3 + [fval4[-1]]), decimal=10)
+                #check pvalue of ftest
+                fpval3 = [resc.f_test(np.eye(3)[ii]).pvalue.item(0,0)
+                            for ii in range(3)]
+                fpval4 = [resall.f_test(np.eye(4)[ii]).pvalue.item(0,0)
+                            for ii in range(4)]
+                assert_almost_equal(ff[1], (fpval3 + [fpval4[-1]]), decimal=10)
+
 
 
 if __name__ == '__main__':
@@ -66,3 +86,11 @@ if __name__ == '__main__':
     print tt.stols.params_new()
     rr = tt.stols.rs_current
     print tt.stols.sweep(0, update=False)
+    resall = tt.cached_ols(np.ones(4, bool))
+    print resall.f_test(np.eye(4)[3])
+    resc = tt.cached_ols(np.array([ True,  True,  True, False, False]))
+    fval3 = [resc.f_test(np.eye(3)[ii]).fvalue.item(0,0) for ii in range(3)]
+    fval4 = [resall.f_test(np.eye(4)[ii]).fvalue.item(0,0) for ii in range(4)]
+    print fval3
+    print fval4
+    print tt.stols.ftest_sweep()
