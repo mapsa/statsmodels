@@ -45,11 +45,19 @@ class TestSweep(object):
 
     def test_sequence(self):
         stols = self.stols
-        for k in range(stols.k_vars_x-1) + [0, 1, 3]: #keep one for next test
+        for k in range(stols.k_vars_x-1) + [0, 1, 3, 0]: #keep one for next test
             print k
             #store anticipated results
             params_new = stols.params_new().copy()
-            rss_new = stols.rss + stols.rss_diff()
+            rss_new0 = stols.rss + stols.rss_diff()
+            rss_new = stols.rss_new()
+            assert_almost_equal(rss_new, rss_new0, decimal=13)
+            #TODO: add params_full, all zeros for not included
+            #this has currently rss in params full, error in test, not code
+#            params_full = stols.rs_current[-1, :stols.k_vars_x]
+#            assert_almost_equal(params_new, params_full + stols.params_diff(),
+#                                decimal=13)
+
             stols.sweep(k)
             res = self.cached_ols(stols.is_exog)
             assert_equal(
@@ -58,7 +66,9 @@ class TestSweep(object):
             assert_almost_equal(params_new[k, stols.is_exog], res.params,
                                 decimal=13)
             assert_almost_equal(rss_new[k], stols.rss, decimal=13)
+
             assert_almost_equal(stols.rss, res.ssr, decimal=12)
+
             if k == stols.k_vars_x - 2:  #do this once
                 print repr(stols.is_exog)
                 resall = tt.cached_ols(np.ones(4, bool))
@@ -76,6 +86,25 @@ class TestSweep(object):
                 fpval4 = [resall.f_test(np.eye(4)[ii]).pvalue.item(0,0)
                             for ii in range(4)]
                 assert_almost_equal(ff[1], (fpval3 + [fpval4[-1]]), decimal=10)
+
+        res3 = tt.stols.get_results()
+        #some differences in names of attributes/properties
+        attr = [('params', 'params'),
+                ('bse', 'bse'),
+                ('scale', 'scale2'),
+                ('df_resid', 'df_resid'),
+                ('nobs', 'nobs'),
+                #('k_vars', 'k_vars_x'),
+                ('normalized_cov_params', 'normalized_cov_params'),
+                ]
+        for iols, ist in attr:
+            #shape mismatch params is 2d not 1d as in OLS, decide later
+#             assert_almost_equal(getattr(stols, ist),
+#                                 getattr(res3, iols),
+#                                 decimal=12, err_msg=ist + 'differs')
+            assert_almost_equal(np.squeeze(getattr(stols, ist)),
+                                np.squeeze(getattr(res3, iols)),
+                                decimal=12, err_msg=ist + 'differs')
 
 
 

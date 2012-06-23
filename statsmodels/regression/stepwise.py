@@ -86,6 +86,25 @@ def loglike_ssr(ssr, nobs):
 ########################  Sweep for Stepwise Regression ###################
 
 def sweep(k, rs):
+    '''sweep a variable in the cross-product matrix
+
+    Parameters
+    ----------
+    k : int
+        index of variable that will be swept
+    rs : ndarray, square
+        contains cross-product matrix, or the matrix after several sweep
+        operations have already be done. Will not be overwritten or changed
+        during sweep.
+
+    Returns
+    -------
+    rs_next : ndarray
+       the cross-product matrix after the sweep operation. Is based on a copy
+       of the original.
+    '''
+
+
     k_vars = rs.shape[1] - 1
     #TODO: can we do inplace sweep ?
     rkk = rs[k, k].copy()
@@ -105,20 +124,46 @@ def sweep(k, rs):
 
 
 class StepwiseOLSSweep(object):
+    '''class to explore stepwise addition or dropping of variables in OLS
 
-    def __init__(self, endog, exog, store_r=False, standardized=False,
-                 ddof_std=0, ddof_model=0):
-        '''
+    This currently does not an automatic specification search, it just
+    updates and calculates results for adding and dropping variables.
 
-        standardized requires that there is no constant in exog
 
-        Issues
+    Parameters
+    ----------
+    endog : ndarray
+        1d or 2d array of endogenous variable, only one endog variable is
+        currently supported
+    exog : ndarray, 2d
+        array of exogenous or explanatory variables
+    store_r : bool
+        If False (default), then only the current matrix is stored and
+        updated. If True, then a copy of the matrix is stored after each sweep.
+        True is not yet implemented.
+    standardize : bool
+        If False, then the raw cross-product is used as starting matrix. If
+        True, then the data is first standardized (z-scored).
+        If standardize is true, then ``exog`` should not contain a constant.
+        Results are tested only for standardize is False.
+    ddof_std : int (or float ?)
+        degrees of freedom adjustment for standardization, used for numpy.std.
+    ddof_model : int (or float ?)
+        degrees of freedom adjustment for model. Can be set to a non-zero
+        value if data is based on some data dependent transformation,
+        for example demeaned
+
+    Issues
         multivariate endog is partially possible, but not fully implemented
             currently only univariate endog is treated correctly in many methods
 
         possible extension:
             start from a pinv solution for initially included variables
-        '''
+
+    '''
+
+    def __init__(self, endog, exog, store_r=False, standardized=False,
+                 ddof_std=0, ddof_model=0):
         self.endog = endog
         self.exog = exog
         self.ddof_std = ddof_std
@@ -147,7 +192,8 @@ class StepwiseOLSSweep(object):
         self.rs_current = rs0.copy()
 
     def update_history(self):
-        #add variables from the current model to the history
+        '''add variables from the current model to the history
+        '''
         #separate method so we can add things here
 
         self.history.append((self.is_exog.copy(),
@@ -183,7 +229,7 @@ class StepwiseOLSSweep(object):
 
     @property
     def scale2(self):
-        return self.rs_current[-1,-1] / self.df_resid()
+        return self.rs_current[-1,-1] / self.df_resid
 
     @property
     def bse(self):
@@ -191,14 +237,15 @@ class StepwiseOLSSweep(object):
 
         view
         '''
-        ret = self.normalized_cov_params
+        ret = np.diag(self.normalized_cov_params)
         ret *= self.scale2
         ret = np.sqrt(ret)
         return ret
 
     @property
     def normalized_cov_params(self):
-        return self.rs_current[self.is_exog, self.is_exog]
+        #return self.rs_current[self.is_exog[:,None], self.is_exog]
+        return self.rs_current[np.ix_(self.is_exog, self.is_exog)]
 
     def sweep(self, k, update=True):
         '''sweep variable k
@@ -252,7 +299,7 @@ class StepwiseOLSSweep(object):
             look only at the effect on a single endog
             only case endog_idx=-1
         '''
-        return self.rss + self.rss_diff(self, endog_idx=endog_idx)
+        return self.rss + self.rss_diff(endog_idx=endog_idx)
 
     def ftest_sweep(self, endog_idx=-1):
         '''get f_test for sweeping a variable
