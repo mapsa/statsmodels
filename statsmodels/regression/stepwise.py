@@ -209,6 +209,8 @@ class StepwiseOLSSweep(object):
         ret = self.rs_current[-self.k_vars_y:, -self.k_vars_y:]
         if self.k_vars_y == 1:
             ret = np.squeeze(ret)[()]
+        else:
+            ret = np.diag(ret)[:,None]
         return ret
 
     @property
@@ -286,9 +288,10 @@ class StepwiseOLSSweep(object):
             only case endog_idx=-1
         '''
         rr = self.rs_current
+        kx = self.k_vars_x
         #add_indicator = (~self.is_exog)
-        add_indicator = ~self.is_exog[:self.k_vars_x] #for change in sign
-        rssd = (rr[-1, :-1]**2 / np.diag(rr)[:-1])
+        add_indicator = ~self.is_exog[:kx] #for change in sign
+        rssd = (rr[endog_idx, :kx]**2 / np.diag(rr)[:kx])
         rssd *= np.sign(0.5 - add_indicator)
         return rssd
 
@@ -336,13 +339,13 @@ class StepwiseOLSSweep(object):
         '''
         kx = self.k_vars_x
         rr = self.rs_current
-        params_own = (rr[-1, :-1] / np.diag(rr)[:-1]) #, None])
+        params_own = (rr[endog_idx, :kx] / np.diag(rr)[:kx]) #, None])
         params_own[self.is_exog[:self.k_vars_x]] = 0
         #is_exog = self.is_exog.copy()
         #the following works for variables that are in
         #row k corresponds to sweeping variable k
         #new parameters of variables are in columns
-        params = rr[-1, :kx]-rr[-1, :kx][:,None] * rr[:kx, :kx] / np.diag(rr)[:kx,None]
+        params = rr[endog_idx, :kx]-rr[endog_idx, :kx][:,None] * rr[:kx, :kx] / np.diag(rr)[:kx,None]
         mask = np.repeat(self.is_exog[None,:self.k_vars_x], self.k_vars_x, axis=0)
         params[~mask] = 0
         #np.diag is mixing views versus copy across versions

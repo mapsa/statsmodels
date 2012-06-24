@@ -27,6 +27,8 @@ class TestSweep(object):
         x[:,0] = 1.   #make constant
         y = x[:, :k_vars-2].sum(1) + np.random.randn(nobs)
 
+        cls.endog_idx = -1
+
         cls.endog, cls.exog = y, x
         cls.ols_cache = {}
 
@@ -49,7 +51,7 @@ class TestSweep(object):
             print k
             #store anticipated results
             params_new = stols.params_new().copy()
-            rss_new0 = stols.rss + stols.rss_diff()
+            rss_new0 = stols.rss + stols.rss_diff(endog_idx=self.endog_idx)
             rss_new = stols.rss_new()
             assert_almost_equal(rss_new, rss_new0, decimal=13)
             #TODO: add params_full, all zeros for not included
@@ -107,10 +109,37 @@ class TestSweep(object):
                                 decimal=12, err_msg=ist + 'differs')
 
 
+class TestSweep2(TestSweep):
+    #test multivariate endog
+    #TDD: this will still fail in many places
+
+    def __init__(self):
+        self.stols = StepwiseOLSSweep(self.endog, self.exog)
+
+    @classmethod
+    def setup_class(cls):
+        #DGP:
+        nobs, k_vars = 50, 4
+
+        np.random.seed(85325783)
+        x = np.random.randn(nobs, k_vars)
+        x[:,0] = 1.   #make constant
+        y = x[:, :k_vars-2].sum(1) + np.random.randn(nobs)
+        y = np.column_stack((y,y))
+
+        cls.endog_idx = [-2,-1]
+
+        cls.endog, cls.exog = y, x
+        cls.ols_cache = {}
+
+
 
 if __name__ == '__main__':
     TestSweep.setup_class()
     tt = TestSweep()
+    tt.test_sequence()
+    TestSweep2.setup_class()
+    tt = TestSweep2()
     tt.test_sequence()
     print tt.stols.params_new()
     rr = tt.stols.rs_current
