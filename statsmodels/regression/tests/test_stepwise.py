@@ -30,6 +30,7 @@ class TestSweep(object):
         cls.endog_idx = -1
 
         cls.endog, cls.exog = y, x
+        cls.endog_ols = y
         cls.ols_cache = {}
 
         #cls.stols = SequentialOLSSweep(y, x)
@@ -39,7 +40,7 @@ class TestSweep(object):
         if key in self.ols_cache:
             res = self.ols_cache[key]
         else:
-            res = OLS(self.endog, self.exog[:, is_exog]).fit()
+            res = OLS(self.endog_ols, self.exog[:, is_exog]).fit()
             self.ols_cache[key] = res
         return res
 
@@ -54,8 +55,8 @@ class TestSweep(object):
             rss_new0 = stols.rss + stols.rss_diff(endog_idx=self.endog_idx)
             rss_new = stols.rss_new()
             assert_almost_equal(rss_new, rss_new0, decimal=13)
-            #TODO: add params_full, all zeros for not included
-            #this has currently rss in params full, error in test, not code
+#            #TODO: add params_full, all zeros for not included
+#            #this has currently rss in params full, error in test, not code
 #            params_full = stols.rs_current[-1, :stols.k_vars_x]
 #            assert_almost_equal(params_new, params_full + stols.params_diff(),
 #                                decimal=13)
@@ -130,7 +131,94 @@ class TestSweep2(TestSweep):
         cls.endog_idx = [-2,-1]
 
         cls.endog, cls.exog = y, x
+        cls.endog_ols = y[:,0]
         cls.ols_cache = {}
+
+    def _compare_ols(self, vmv, vols, decimal=7, stack='v'):
+
+        if stack == 'v':
+            v2 = np.vstack((vols, vols))
+        else:
+            v2 = np.hstack((vols, vols))
+
+        assert_almost_equal(vmv, v2, decimal=decimal)
+
+
+    #copied and adjusted make DRY, OLS doesn't handle multivariate endog
+    def test_sequence(self):
+        stols = self.stols
+        for k in range(stols.k_vars_x-1) + [0, 1, 3, 0]: #keep one for next test
+            print k
+            #store anticipated results
+            params_new = stols.params_new().copy()
+            rss_new0 = stols.rss + stols.rss_diff(endog_idx=self.endog_idx)
+            rss_new = stols.rss_new()
+            assert_almost_equal(rss_new, rss_new0, decimal=13)
+            #TODO: add params_full, all zeros for not included
+            #this has currently rss in params full, error in test, not code
+#            params_full = stols.rs_current[-1, :stols.k_vars_x]
+#            assert_almost_equal(params_new, params_full + stols.params_diff(),
+#                                decimal=13)
+
+            stols.sweep(k)
+            res = self.cached_ols(stols.is_exog)
+            #TODO: params_new is only for one endog
+            assert_equal(
+                 np.squeeze(params_new[k:k+1, stols.is_exog[:stols.k_vars_x]]),
+                 np.squeeze(stols.params[0]))  #different ndim
+#            self._compare_ols(params_new[k, stols.is_exog], res.params,
+#                                decimal=13)
+            assert_almost_equal(params_new[k, stols.is_exog], res.params,
+                                decimal=13)
+            assert_almost_equal(rss_new[...,k:k+1], stols.rss, decimal=13)
+
+            assert_almost_equal(stols.rss, res.ssr, decimal=12)
+
+            if k == stols.k_vars_x - 2:  #do this once
+                print repr(stols.is_exog)
+                resall = tt.cached_ols(np.ones(4, bool))
+                resc = tt.cached_ols(tt.stols.is_exog)
+                #check fvalue of ftest
+                fval3 = [resc.f_test(np.eye(3)[ii]).fvalue.item(0,0)
+                            for ii in range(3)]
+                fval4 = [resall.f_test(np.eye(4)[ii]).fvalue.item(0,0)
+                            for ii in range(4)]
+                ff = tt.stols.ftest_sweep()
+                #assert_almost_equal(ff[0], (fval3 + [fval4[-1]]), decimal=10)
+                self._compare_ols(ff[0], (fval3 + [fval4[-1]]), decimal=10)
+                #check pvalue of ftest
+                fpval3 = [resc.f_test(np.eye(3)[ii]).pvalue.item(0,0)
+                            for ii in range(3)]
+                fpval4 = [resall.f_test(np.eye(4)[ii]).pvalue.item(0,0)
+                            for ii in range(4)]
+                #assert_almost_equal(ff[1], (fpval3 + [fpval4[-1]]), decimal=10)
+                self._compare_ols(ff[1], (fpval3 + [fpval4[-1]]), decimal=10)
+
+        res3 = tt.stols.get_results()
+        #some differences in names of attributes/properties
+        attr = [#('params', 'params'),
+                ('bse', 'bse'),
+                ('scale', 'scale2'),
+                ('df_resid', 'df_resid'),
+                ('nobs', 'nobs'),
+                #('k_vars', 'k_vars_x'),
+                ('normalized_cov_params', 'normalized_cov_params'),
+                ]
+
+        #params is for multivariate endog, the others are not
+        ist = iols = 'params'
+        assert_almost_equal(np.squeeze(getattr(stols, ist)[0]),
+                                np.squeeze(getattr(res3, iols)),
+                                decimal=12, err_msg=ist + ' differs')
+
+        for iols, ist in attr:
+            #shape mismatch params is 2d not 1d as in OLS, decide later
+#             assert_almost_equal(getattr(stols, ist),
+#                                 getattr(res3, iols),
+#                                 decimal=12, err_msg=ist + 'differs')
+            assert_almost_equal(np.squeeze(getattr(stols, ist)),
+                                np.squeeze(getattr(res3, iols)),
+                                decimal=12, err_msg=ist + ' differs')
 
 
 

@@ -366,10 +366,14 @@ class StepwiseOLSSweep(object):
         params_current[~self.is_exog[:-1]] = 0
         return params_current - self.params_new(endog_idx=endog_idx)
 
-    def get_results(self):
+    def get_results(self, endog_idx=0):
         '''run OLS regression on current model and return results
 
         '''
         from statsmodels.regression.linear_model import OLS
-        res = OLS(self.endog, self.exog[:, self.is_exog]).fit()
+        if self.k_vars_y > 1:
+            endog = self.endog[:,endog_idx]
+        else:
+            endog = self.endog
+        res = OLS(endog, self.exog[:, self.is_exog]).fit()
         return res
