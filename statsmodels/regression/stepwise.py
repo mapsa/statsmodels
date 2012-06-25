@@ -23,10 +23,14 @@ class SequentialOLSQR(object):
         self.ss_contrib = ss_contrib = self.r[:-1,-1]**2
         self.ess_uncentered = ss_contrib.sum()
         self.uncentered_tss = np.dot(endog.T, endog)
-        self.ess_all = ss_contrib.cumsum()
+        self.ess_uncentered_all = ss_contrib.cumsum()
+        #TODO: ess_all assumes constant in first position
+        self.ess_all = self.ess_uncentered_all - self.ess_uncentered_all[0]
         assert self.uncentered_tss, self.ess_all[-1] + self.ssr
         self.ssr_all = self.uncentered_tss - ss_contrib.cumsum()
-        self.dfmodelwc = np.arange(1, self.k_vars+1)
+        self.df_modelwc = np.arange(1, self.k_vars+1)
+        self.df_model = self.df_modelwc - 1
+        self.df_resid = self.nobs - self.df_modelwc
 
     def r_inv(self):
         return np.linalg.inv(self.r[:-1, :-1])
@@ -35,6 +39,7 @@ class SequentialOLSQR(object):
         return np.dot(self.r_inv.T, self.r_inv)
 
 
+    @property
     def llf_all(self):
         return loglike_ssr(self.ssr_all, self.nobs)
 
@@ -51,12 +56,12 @@ class SequentialOLSQR(object):
 
     def ic_sigma_all(self, ic='bic'):
         ic_func = getattr(evm, ic + '_sigma')
-        ic = ic_func(self.ssr_all, self.nobs, self.dfmodelwc) #is vectorized with arrays
+        ic = ic_func(self.ssr_all, self.nobs, self.df_modelwc) #is vectorized with arrays
         return np.asarray(ic)
 
     def ic_all(self, ic='bic'):
         ic_func = getattr(evm, ic)
-        ic = ic_func(self.llf_all(), self.nobs, self.dfmodelwc) #is vectorized with arrays
+        ic = ic_func(self.llf_all, self.nobs, self.df_modelwc) #is vectorized with arrays
         return np.asarray(ic)
 
     def min_ic_idx(self, ic='bic'):
@@ -66,6 +71,10 @@ class SequentialOLSQR(object):
         ic = self.ic_all(ic=ic)
         argmin_ic = self.start_idx + np.argmin(ic[self.start_idx:])
         return argmin_ic
+
+    def ttest_next(self):
+        #used in unitroot_adf, adfuller
+        raise NotImplementedError
 
 def loglike_ssr(ssr, nobs):
     '''

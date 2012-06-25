@@ -10,7 +10,100 @@ import numpy as np
 from numpy.testing import assert_equal, assert_almost_equal
 
 from statsmodels.regression.linear_model import OLS
-from statsmodels.regression.stepwise import StepwiseOLSSweep
+from statsmodels.regression.stepwise import StepwiseOLSSweep, SequentialOLSQR
+
+
+class TestSequentialOLS(object):
+
+    def __init__(self):
+        self.seqols = SequentialOLSQR(self.endog, self.exog)
+
+    @classmethod
+    def setup_class(cls):
+        #DGP:
+        nobs, k_vars = 50, 4  #for DGP
+
+        np.random.seed(85325783)
+        x = np.random.randn(nobs, k_vars)
+        x[:,0] = 1.   #make constant
+        y = x[:, :k_vars-2].sum(1) + np.random.randn(nobs)
+
+        cls.endog_idx = -1
+
+        cls.endog, cls.exog = y, x
+        cls.ols_cache = {}
+
+        cls.nobs, cls.k_vars = x.shape
+
+
+    def cached_ols(self, k_x):
+        key = k_x
+        if key in self.ols_cache:
+            res = self.ols_cache[key]
+        else:
+            res = OLS(self.endog, self.exog[:, :k_x]).fit()
+            self.ols_cache[key] = res
+        return res
+
+    def test_compare_ols(self):
+        attr = [('ssr', 'ssr_all'),
+                ('llf', 'llf_all'),
+                ('ess', 'ess_all'),
+                #('llf', 'llf_all'),
+                #('params', 'params'),
+                #('bse', 'bse'),
+                #('scale', 'scale2'),
+                ('df_resid', 'df_resid'),
+                ('df_model', 'df_model'),   #without constant, OLS definition
+                #('nobs', 'nobs'),
+                #('k_vars', 'k_vars_x'),
+                #('normalized_cov_params', 'normalized_cov_params'),
+                ]
+        for iols, iseq in attr:
+            res_ols = [getattr(self.cached_ols(k_x), iols)
+                            for k_x in range(1, self.k_vars+1)]
+            res_seq = getattr(self.seqols, iseq)
+            msg = iseq + 'differs'
+            assert_almost_equal(res_seq, res_ols, decimal=12, err_msg=msg)
+
+    def test_compare_ols_full(self):
+        attr = [('ssr', 'ssr'),
+                #('llf', 'llf_all'),
+                #('ess', 'ess_all'),
+                #('llf', 'llf_all'),
+                #('params', 'params'),
+                #('bse', 'bse'),
+                #('scale', 'scale2'),
+                #('df_resid', 'df_resid'),
+                #('df_model', 'df_model'),   #without constant, OLS definition
+                #('nobs', 'nobs'),
+                #('k_vars', 'k_vars_x'),
+                #('normalized_cov_params', 'normalized_cov_params'),
+                ]
+        for iols, iseq in attr:
+            res_ols = getattr(self.cached_ols(self.k_vars), iols)
+            res_seq = getattr(self.seqols, iseq)
+            msg = iseq + 'differs'
+            assert_almost_equal(res_seq, res_ols, decimal=12, err_msg=msg)
+
+    def test_compare_ic(self):
+        for ic in ['aic', 'bic']:
+            res_ols = [getattr(self.cached_ols(k_x), ic)
+                                for k_x in range(1, self.k_vars+1)]
+            res_seq = self.seqols.ic_all(ic=ic)
+            assert_almost_equal(res_seq, res_ols, decimal=12)
+
+    def test_others(self):
+        assert_equal(self.seqols.df_modelwc, self.seqols.df_model + 1)
+
+
+
+    def test_params(self):
+        pass
+
+
+
+
 
 class TestSweep(object):
 
@@ -240,3 +333,10 @@ if __name__ == '__main__':
     print fval3
     print fval4
     print tt.stols.ftest_sweep()
+
+    TestSequentialOLS.setup_class()
+    tt = TestSequentialOLS()
+    tt.test_compare_ols()
+    tt.test_compare_ols_full()
+    tt.test_compare_ic()
+    tt.test_others()
