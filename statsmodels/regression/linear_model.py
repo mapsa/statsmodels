@@ -952,12 +952,12 @@ class RegressionResults(base.LikelihoodModelResults):
     @cache_writable()
     def scale(self):
         wresid = self.wresid
-        return np.dot(wresid, wresid) / self.df_resid
+        return np.dot(wresid.T, wresid) / self.df_resid
 
     @cache_readonly
     def ssr(self):
         wresid = self.wresid
-        return np.dot(wresid, wresid)
+        return np.dot(wresid.T, wresid)
 
     @cache_readonly
     def centered_tss(self):
