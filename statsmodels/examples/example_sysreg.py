@@ -48,3 +48,10 @@ params_names = ['f%d_%s'%(fn,en) for fn in range(4)
         for en in ['const', 'value', 'capital']]
 print grun_res.summary(xname=params_names)
 
+
+exli = [ii["exog"] for ii in sys]
+print grun_res.predict(exli).shape
+#errors:
+#exli = [ii["exog"][:3] for ii in sys]
+#grun_res.predict(exli).shape
+#grun_res.model.predict(grun_res.params, exli).shape
