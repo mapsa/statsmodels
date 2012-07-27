@@ -1669,6 +1669,17 @@ class LikelihoodModelResults(Results):
             upper = self.params[cols] + q * bse[cols]
         return np.asarray(zip(lower, upper))
 
+
+    @cache_readonly
+    def llf(self):
+        return self.model.loglike(self.params)
+
+
+    @property
+    def nllf(self):
+        return - self.llf
+
+
     def save(self, fname, remove_data=False):
         '''
         save a pickle of this instance
