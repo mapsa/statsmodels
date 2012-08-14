@@ -199,7 +199,7 @@ class RLM(base.LikelihoodModel):
             return scale.scale_est(self, resid)**2
 
     def fit(self, maxiter=50, tol=1e-8, scale_est='mad', init=None, cov='H1',
-            update_scale=True, conv='dev'):
+            update_scale=True, conv='dev', weights=1.):
         """
         Fits the model using iteratively reweighted least squares.
 
@@ -259,9 +259,9 @@ class RLM(base.LikelihoodModel):
             warn("stand_mad is deprecated and will be removed in 0.7.0",
                  FutureWarning)
 
-        wls_results = lm.WLS(self.endog, self.exog).fit()
+        wls_results = lm.WLS(self.endog, self.exog, weights=weights).fit()
         if not init:
-            self.scale = self._estimate_scale(wls_results.resid)
+            self.scale = self._estimate_scale(wls_results.wresid)
 
         history = dict(params = [np.inf], scale = [])
         if conv == 'coefs':
