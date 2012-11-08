@@ -42,7 +42,7 @@ cat_items <- function(object, prefix="", blacklist=NULL, trans=list())    {
         name_ = paste(prefix, name_, sep="")
 
         if (is.numeric(item)) {
-            if (!is.null(names(item))) {    #named list, class numeric ?
+            if ((!is.null(names(item))) | (length(item) > 1)) {    #named list, class numeric ?
                mkarray2(as.matrix(item), name_);
                 if (!is.null(dimnames(item))) write_dimnames(item, prefix=name_)
             }
@@ -110,16 +110,35 @@ mkhtest <- function(ht, name, distr="f") {
     cat("\n\n")
 }
 
-mkarray2 <- function(X, name, sanitize=FALSE) {
+mkarray2 <- function(X, name, sanitize=FALSE, usedimnames=FALSE) {
+    if (is.data.frame(X)) {
+        X = data.matrix(X)
+        usedimnames = TRUE
+    }
     indent = "    "
+    size = nrow(X) * ncol(X)
     if (sanitize) {
-    cat(sanitize_name(name)); cat(" = np.array([\n"); cat(X, sep=", ", fill=76, labels=indent); cat(indent); cat("])") }
-    else{
-    cat(name); cat(" = np.array([\n"); cat(X, sep=", ", fill=76, labels=indent); cat(indent); cat("])") }
+        cat(sanitize_name(name)); cat(" = np.array([\n"); cat(X, sep=", ", fill=76, labels=indent); cat(indent); cat("])") 
+    }
+    else {
+    if (size == 1) {
+        cat(name); cat(" = "); cat(X); }#cat("\n")}
+    else if (size == 2) {
+        cat(name); cat(" = np.array(["); cat(X, sep=", "); cat("])")
+    }
+    else {
+    cat(name); cat(" = np.array([\n");
+    cat(X, sep=", ", fill=76, labels=indent)
+    cat(indent)
+    cat("])") }
     if (is.matrix(X)) {
-        i <- as.character(nrow(X))
-        j <- as.character(ncol(X))
-        cat(".reshape("); cat(i); cat(","); cat(j); cat(", order='F')")
+	  if ((nrow(X) > 1) & (ncol(X) > 1)) {
+            i <- as.character(nrow(X))
+            j <- as.character(ncol(X))
+            cat(".reshape("); cat(i); cat(","); cat(j); cat(", order='F')")
+        }
     }
     cat("\n")
+    }  #else size == 1
+    if ((usedimnames) & (!is.null(dimnames(X)))) write_dimnames(X, prefix=name)
 }
