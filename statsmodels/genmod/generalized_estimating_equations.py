@@ -251,7 +251,7 @@ class GEE(base.Model):
         # of arrays, corresponding to the clusters.
         group_labels = np.unique(groups)
         group_labels.sort()
-        row_indices = {s: [] for s in group_labels}
+        row_indices = dict((s,[]) for s in group_labels)
         for i in range(len(self.endog)):
             row_indices[groups[i]].append(i)
         self.row_indices = row_indices

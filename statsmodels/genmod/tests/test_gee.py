@@ -97,7 +97,7 @@ class TestGEE(object):
         D = pd.DataFrame(D)
         D.columns = ["Y","Id",] + ["X%d" % (k+1) for k in range(exog.shape[1]-1)]
         for j,v in enumerate((vi,ve)):
-             md = GEE.from_formula("Y ~ X1 + X2 + X3", D, None, groups=D.loc[:,"Id"],
+             md = GEE.from_formula("Y ~ X1 + X2 + X3", D, None, groups=D["Id"],
                                    family=family, varstruct=v)
              mdf = md.fit()
              assert_almost_equal(mdf.params.values, cf[j], decimal=6)
@@ -110,11 +110,11 @@ class TestGEE(object):
     def test_linear(self):
         """
         linear
-        
+
         library(gee)
 
-        Z = read.csv("results/gee_linear_1.csv", header=FALSE)        
-        Y = Z[,2]                                                                                                                  
+        Z = read.csv("results/gee_linear_1.csv", header=FALSE)
+        Y = Z[,2]
         Id = Z[,1]
         X1 = Z[,3]
         X2 = Z[,4]
@@ -123,20 +123,20 @@ class TestGEE(object):
                 tol=1e-8, maxit=100)
         smi = summary(mi)
         u = coefficients(smi)
-          
+
         cfi = paste(u[,1], collapse=",")
         sei = paste(u[,4], collapse=",")
 
-        me = gee(Y ~ X1 + X2 + X3, id=Id, family=gaussian, corstr="exchangeable", 
-                tol=1e-8, maxit=100)          
+        me = gee(Y ~ X1 + X2 + X3, id=Id, family=gaussian, corstr="exchangeable",
+                tol=1e-8, maxit=100)
         sme = summary(me)
         u = coefficients(sme)
 
         cfe = paste(u[,1], collapse=",")
         see = paste(u[,4], collapse=",")
 
-        sprintf("cf = [[%s],[%s]]", cfi, cfe) 
-        sprintf("se = [[%s],[%s]]", sei, see)                                        
+        sprintf("cf = [[%s],[%s]]", cfi, cfe)
+        sprintf("se = [[%s],[%s]]", sei, see)
         """
 
         family = Gaussian()
@@ -149,7 +149,7 @@ class TestGEE(object):
         cf = [[0.00515978834534064,0.78615903847622,-1.57628929834004,0.782486240348685],
               [0.00516507033680904,0.786253541786879,-1.57666801099155,0.781741984193051]]
         se = [[0.025720523853008,0.0303348838938358,0.0371658992200722,0.0301352423377647],
-              [0.025701817387204,0.0303307060257735,0.0371977050322601,0.0301218562204013]] 
+              [0.025701817387204,0.0303307060257735,0.0371977050322601,0.0301218562204013]]
 
         for j,v in enumerate((vi,ve)):
             md = GEE(endog, exog, group, None, family, v)
@@ -162,7 +162,7 @@ class TestGEE(object):
         D = pd.DataFrame(D)
         D.columns = ["Y","Id",] + ["X%d" % (k+1) for k in range(exog.shape[1]-1)]
         for j,v in enumerate((vi,ve)):
-            md = GEE.from_formula("Y ~ X1 + X2 + X3", D, None, groups=D.loc[:,"Id"],
+            md = GEE.from_formula("Y ~ X1 + X2 + X3", D, None, groups=D["Id"],
                                   family=family, varstruct=v)
             mdf = md.fit()
             assert_almost_equal(mdf.params.values, cf[j], decimal=10)
@@ -238,14 +238,14 @@ class TestGEE(object):
         X4 = Z[,6]
         X5 = Z[,7]
 
-        mi = gee(Y ~ X1 + X2 + X3 + X4 + X5, id=Id, family=poisson, 
+        mi = gee(Y ~ X1 + X2 + X3 + X4 + X5, id=Id, family=poisson,
                 corstr="independence", scale.fix=TRUE)
         smi = summary(mi)
         u = coefficients(smi)
         cfi = paste(u[,1], collapse=",")
         sei = paste(u[,4], collapse=",")
 
-        me = gee(Y ~ X1 + X2 + X3 + X4 + X5, id=Id, family=poisson, 
+        me = gee(Y ~ X1 + X2 + X3 + X4 + X5, id=Id, family=poisson,
                 corstr="exchangeable", scale.fix=TRUE)
         sme = summary(me)
 
@@ -280,7 +280,7 @@ class TestGEE(object):
         D = pd.DataFrame(D)
         D.columns = ["Y","Id",] + ["X%d" % (k+1) for k in range(exog.shape[1]-1)]
         for j,v in enumerate((vi,ve)):
-             md = GEE.from_formula("Y ~ X1 + X2 + X3 + X4 + X5", D, None, groups=D.loc[:,"Id"],
+             md = GEE.from_formula("Y ~ X1 + X2 + X3 + X4 + X5", D, None, groups=D["Id"],
                                    family=family, varstruct=v)
              mdf = md.fit()
              assert_almost_equal(mdf.params, cf[j], decimal=5)
