@@ -124,11 +124,11 @@ def should_backport(labels=None, milestone=None):
         )
     else:
         milestone_id = get_milestone_id("statsmodels/statsmodels", milestone,
-                auth=True)
+                auth=False) #True)
         issues = get_issues_list("statsmodels/statsmodels",
                 milestone=milestone_id,
                 state='closed',
-                auth=True,
+                auth=False #True,
         )
 
     should_backport = set()
@@ -136,7 +136,7 @@ def should_backport(labels=None, milestone=None):
         if not is_pull_request(issue):
             continue
         pr = get_pull_request("statsmodels/statsmodels", issue['number'],
-                auth=True)
+                auth=False) #True)
         if not pr['merged']:
             print ("Marked PR closed without merge: %i" % pr['number'])
             continue
@@ -156,7 +156,7 @@ if __name__ == '__main__':
         should = should_backport(milestone="0.5.1")
         print ("The following PRs should be backported:")
         for pr in should.difference(already):
-            print (pr)
+            print ('#'+str(pr))
         sys.exit(0)
 
     sys.exit(backport_pr(sys.argv[1], int(sys.argv[2])))
