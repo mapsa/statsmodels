@@ -2,10 +2,49 @@
 """Wilcoxon-Type precedence test for equality of distribution against
 one-sided alternative
 
+
+References
+----------
+Ng, H. K. T., and N. Balakrishnan. 2002. "Wilcoxon-Type Rank-Sum Precedence
+Tests: Large-Sample Approximation and Evaluation." Applied Stochastic
+Models in Business and Industry 18 (3): 271-286. doi:10.1002/asmb.478.
+
+Ng, H. K. T., and N. Balakrishnan. 2010. "Precedence-Type Test Based on
+Kaplan-Meier Estimator of Cumulative Distribution Function." Journal of
+Statistical Planning and Inference 140 (8) (August): 2295–2311.
+doi:10.1016/j.jspi.2010.01.025.
+
+Ng, H.k.t., and N. Balakrishnan. 2004. "Wilcoxon-Type Rank-Sum
+Precedence Tests." Australian & New Zealand Journal of Statistics 46
+(4): 631-648. doi:10.1111/j.1467-842X.2004.00358.x.
+
+
+the following and similar articles contain extensions that are not implemented
+
+Balakrishnan, N., Ram C. Tripathi, and Nandini Kannan. 2008. "On the Joint
+Distribution of Placement Statistics under Progressive Censoring and
+Applications to Precedence Test." Journal of Statistical Planning and
+Inference 138 (5) (May 1): 1314-1324. doi:10.1016/j.jspi.2007.06.018.
+
+Balakrishnan, Narayanaswamy, and Hon Keung Tony Ng. 2009. “Precedence-Type
+Tests for the Comparison of Treatments with a Control." In Scan Statistics,
+edited by Joseph Glaz, Vladimir Pozdnyakov, and Sylvan Wallenstein, 27-54.
+Statistics for Industry and Technology. Birkhäuser Boston.
+http://link.springer.com/chapter/10.1007/978-0-8176-4749-0_2.
+
+
 Created on Sun Jan 12 22:32:33 2014
 
 Author: Josef Perktold
 License: BSD-3
+
+The implementation follows largely the description in the first and third
+article above. Both contain typos in the formulas and might use inconsistent
+definitions of the intermediate variables.
+The exact p-value of w_mean differs slightly from the example in NB 2002. In
+my case p-value for w_mean is in between the p-values for w_min and w_max.
+
+exact, approximate and permutation give similar p-values in the example.
 
 """
 
@@ -488,6 +527,22 @@ def precedence(x1, x2, r_cut, nobs1, nobs2, kind='min', pvalue_method='auto'):
         and the associated p-values `pvalue_min`, `pvalue_max` and
         `pvalue_mean`. `results` also has a summary method to print the
         main information.
+
+    References
+    ----------
+    Ng, H. K. T., and N. Balakrishnan. 2002. "Wilcoxon-Type Rank-Sum Precedence
+    Tests: Large-Sample Approximation and Evaluation." Applied Stochastic
+    Models in Business and Industry 18 (3): 271-286. doi:10.1002/asmb.478.
+
+    Ng, H. K. T., and N. Balakrishnan. 2010. "Precedence-Type Test Based on
+    Kaplan-Meier Estimator of Cumulative Distribution Function." Journal of
+    Statistical Planning and Inference 140 (8) (August): 2295–2311.
+    doi:10.1016/j.jspi.2010.01.025.
+
+    Ng, H.k.t., and N. Balakrishnan. 2004. "Wilcoxon-Type Rank-Sum
+    Precedence Tests." Australian & New Zealand Journal of Statistics 46
+    (4): 631-648. doi:10.1111/j.1467-842X.2004.00358.x.
+
 
 
     """
