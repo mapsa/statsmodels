@@ -428,7 +428,7 @@ if __name__ == '__main__':
     nobs = 10000
 
     import matplotlib.pyplot as plt
-    from statsmodels.sandbox.distributions.mixture_rvs import (
+    from statsmodels.distributions.mixture_rvs import (
                                                 mixture_rvs, MixtureDistribution)
 
     #np.random.seed(12345)
@@ -545,7 +545,7 @@ if __name__ == '__main__':
             plt.plot(grid, xf, lw=2, color='black')
             plt.plot(grid, mpdf, lw=2, color='green')
             plt.title('using Hermite polynomials')
-            plt.show()
+            #plt.show()
 
         #check orthonormality:
         print np.max(np.abs(inner_cont(dop.polys[:5], 0, 1)[0] -np.eye(5)))
