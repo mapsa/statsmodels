@@ -851,3 +851,16 @@ def estimate_location(a, scale, norm=None, axis=0, initial=None,
     raise ValueError("location estimator failed to converge in %d iterations"\
             % maxiter)
 
+def get_all_norms():
+    """get all RobustNorm classes defined in this module
+    """
+    all_norms = []
+    import sys
+    current_module = sys.modules[__name__]
+    for obj_name in dir(current_module):
+        obj = getattr(current_module, obj_name)
+        if (type(obj) is type    # avoids importing inspect (isclass
+                and issubclass(obj, RobustNorm)
+                and not (obj is RobustNorm)):
+            all_norms.append(obj)
+    return all_norms
