@@ -155,7 +155,7 @@ class RegressionModel(base.LikelihoodModel):
     def whiten(self, X):
         raise NotImplementedError("Subclasses should implement.")
 
-    def fit(self, method="pinv", **kwargs):
+    def fit(self, method="pinv", cov_type='nonrobust', cov_kwds=None, **kwargs):
         """
         Full fit of the model.
 
@@ -223,10 +223,12 @@ class RegressionModel(base.LikelihoodModel):
 
         if isinstance(self, OLS):
             lfit = OLSResults(self, beta,
-                       normalized_cov_params=self.normalized_cov_params)
+                       normalized_cov_params=self.normalized_cov_params,
+                       cov_type=cov_type, cov_kwds=cov_kwds)
         else:
             lfit = RegressionResults(self, beta,
-                       normalized_cov_params=self.normalized_cov_params)
+                       normalized_cov_params=self.normalized_cov_params,
+                       cov_type=cov_type, cov_kwds=cov_kwds)
         return RegressionResultsWrapper(lfit)
 
     def predict(self, params, exog=None):
@@ -945,7 +947,8 @@ class RegressionResults(base.LikelihoodModelResults):
 
     _cache = {} # needs to be a class attribute for scale setter?
 
-    def __init__(self, model, params, normalized_cov_params=None, scale=1.):
+    def __init__(self, model, params, normalized_cov_params=None, scale=1.,
+                       cov_type='nonrobust', cov_kwds=None):
         super(RegressionResults, self).__init__(model, params,
                                                 normalized_cov_params,
                                                 scale)
@@ -955,15 +958,22 @@ class RegressionResults(base.LikelihoodModelResults):
             self._wexog_singular_values = model.wexog_singular_values
         else:
             self._wexog_singular_values = None
-        self.cov_type = 'nonrobust'
-        self.cov_kwds = {'description' : 'Standard Errors assume that the ' +
-                         'covariance matrix of the errors is correctly ' +
-                         'specified.'}
 
         self.df_model = model.df_model
         self.df_resid = model.df_resid
 
         self.use_t = True  # default for linear models
+
+        if cov_type == 'nonrobust':
+            self.cov_type = 'nonrobust'
+            self.cov_kwds = {'description' : 'Standard Errors assume that the ' +
+                             'covariance matrix of the errors is correctly ' +
+                             'specified.'}
+        else:
+            if cov_kwds is None:
+                cov_kwds = {}
+            self.get_robustcov_results(cov_type=cov_type, use_self=True,
+                                       **cov_kwds)
 
 
     def __str__(self):
@@ -1635,12 +1645,20 @@ class RegressionResults(base.LikelihoodModelResults):
 
         import statsmodels.stats.sandwich_covariance as sw
 
-        res = self.__class__(self.model, self.params,
+        # TODO: make separate function that returns a robust cov plus info
+        use_self = kwds.pop('use_self', False)
+        if use_self:
+            res = self
+        else:
+            res = self.__class__(self.model, self.params,
                        normalized_cov_params=self.normalized_cov_params,
                        scale=self.scale)
 
-        res.cov_type = cov_type = cov_type
-        res.cov_kwds = {'use_t':use_t}
+        res.cov_type = cov_type
+        # use_t might already be defined by the class, and already set
+        if not use_t is None:
+            use_t = self.use_t
+        res.cov_kwds = {'use_t':use_t}  # store for information
         res.use_t = use_t
 
         adjust_df = False
